@@ -1,0 +1,564 @@
+import { useMemo, useState } from 'react';
+import {
+  AlertTriangle,
+  BarChart3,
+  Beaker,
+  Calculator,
+  CheckCircle2,
+  Droplets,
+  Gauge,
+  Info,
+  Leaf,
+  Sprout,
+  Tractor,
+} from 'lucide-react';
+
+const initialCalagem = {
+  k: '0',
+  ca: '0',
+  mg: '0',
+  hal: '0',
+  p: '0',
+  vAlvo: '70',
+  prnt: '80',
+};
+
+const initialPulverizador = {
+  vazao: '0.80',
+  espacamento: '50',
+  tanque: '600',
+  metodo: 'Painel',
+  velocidadePainel: '5',
+  dist: '50',
+  tempo: '30',
+};
+
+const toNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const formatNumber = (value, digits = 2) =>
+  Number.isFinite(value) ? value.toFixed(digits).replace('.', ',') : '0,00';
+
+function ResultCard({ icon: Icon, label, value, hint }) {
+  return (
+    <div className="metric-card">
+      <div className="metric-head">
+        <span className="metric-icon">
+          <Icon size={18} />
+        </span>
+        <span>{label}</span>
+      </div>
+      <strong>{value}</strong>
+      {hint ? <small>{hint}</small> : null}
+    </div>
+  );
+}
+
+function SectionTitle({ icon: Icon, title, subtitle }) {
+  return (
+    <div className="section-title">
+      <div className="section-icon">
+        <Icon size={20} />
+      </div>
+      <div>
+        <h2>{title}</h2>
+        <p>{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [activeTab, setActiveTab] = useState('calagem');
+  const [calagem, setCalagem] = useState(initialCalagem);
+  const [pulverizador, setPulverizador] = useState(initialPulverizador);
+  const [showCalagemResult, setShowCalagemResult] = useState(true);
+  const [showPulverizadorResult, setShowPulverizadorResult] = useState(true);
+
+  const calagemResult = useMemo(() => {
+    const k = toNumber(calagem.k);
+    const ca = toNumber(calagem.ca);
+    const mg = toNumber(calagem.mg);
+    const hal = toNumber(calagem.hal);
+    const vAlvo = toNumber(calagem.vAlvo);
+    const prnt = toNumber(calagem.prnt);
+
+    const sb = k + ca + mg;
+    const ctc = sb + hal;
+    const vAtual = ctc > 0 ? (sb / ctc) * 100 : 0;
+    const ncBruta = prnt > 0 ? ((vAlvo - vAtual) * ctc) / prnt : 0;
+    const nc = Math.max(0, ncBruta);
+    const diferenca = Math.max(0, vAlvo - vAtual);
+
+    return {
+      sb,
+      ctc,
+      vAtual,
+      nc,
+      diferenca,
+      soloCorrigido: nc <= 0,
+    };
+  }, [calagem]);
+
+  const pulverizadorResult = useMemo(() => {
+    const vazao = toNumber(pulverizador.vazao);
+    const espacamento = toNumber(pulverizador.espacamento);
+    const tanque = toNumber(pulverizador.tanque);
+    const velocidadePainel = toNumber(pulverizador.velocidadePainel);
+    const dist = toNumber(pulverizador.dist);
+    const tempo = toNumber(pulverizador.tempo);
+
+    const velocidade =
+      pulverizador.metodo === 'Painel'
+        ? velocidadePainel
+        : tempo > 0
+          ? (dist / tempo) * 3.6
+          : 0;
+
+    const volume = velocidade > 0 && espacamento > 0 ? (vazao * 60000) / (velocidade * espacamento) : 0;
+    const autonomia = volume > 0 ? tanque / volume : 0;
+
+    let status = 'alto';
+    let statusLabel = 'Volume alto';
+    let statusClass = 'danger';
+
+    if (volume < 100) {
+      status = 'baixo';
+      statusLabel = 'Volume baixo';
+      statusClass = 'warning';
+    } else if (volume <= 250) {
+      status = 'ideal';
+      statusLabel = 'Faixa ideal';
+      statusClass = 'success';
+    }
+
+    return {
+      velocidade,
+      volume,
+      autonomia,
+      status,
+      statusLabel,
+      statusClass,
+    };
+  }, [pulverizador]);
+
+  const updateCalagem = (field, value) => {
+    setCalagem((current) => ({ ...current, [field]: value }));
+  };
+
+  const updatePulverizador = (field, value) => {
+    setPulverizador((current) => ({ ...current, [field]: value }));
+  };
+
+  return (
+    <div className="app-shell">
+      <div className="bg-orb orb-1" />
+      <div className="bg-orb orb-2" />
+      <div className="bg-grid" />
+
+      <main className="container">
+        <section className="hero">
+          <div className="hero-copy">
+            <span className="eyebrow">Aplicação pronta para Vercel</span>
+            <h1>Ferramentas Agrícolas</h1>
+            <p>
+              Um app em React + Vite com visual mais moderno, responsivo e preparado para deploy na
+              Vercel. Mantive a lógica principal da sua versão em Streamlit e melhorei bastante a
+              experiência visual.
+            </p>
+
+            <div className="hero-badges">
+              <span><Leaf size={16} /> Calagem</span>
+              <span><Tractor size={16} /> Pulverizador</span>
+              <span><BarChart3 size={16} /> Resultados claros</span>
+            </div>
+          </div>
+
+          <div className="hero-panel card glass">
+            <div className="hero-brand">
+              <div className="brand-mark">
+                <img src="/logo.svg" alt="Logo Ferramentas Agrícolas" />
+              </div>
+              <div>
+                <strong>Ferramentas Agrícolas</strong>
+                <p>Eng. Agr. Rodolfo Degaspari Delagracia</p>
+              </div>
+            </div>
+
+            <div className="hero-stats">
+              <div>
+                <span>Interface</span>
+                <strong>Premium</strong>
+              </div>
+              <div>
+                <span>Deploy</span>
+                <strong>Vercel</strong>
+              </div>
+              <div>
+                <span>Estrutura</span>
+                <strong>Vite</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="tabs-wrap card">
+          <div className="tabs-header">
+            <button
+              className={activeTab === 'calagem' ? 'tab-button active' : 'tab-button'}
+              onClick={() => setActiveTab('calagem')}
+              type="button"
+            >
+              <Beaker size={18} />
+              Calagem
+            </button>
+            <button
+              className={activeTab === 'pulverizador' ? 'tab-button active' : 'tab-button'}
+              onClick={() => setActiveTab('pulverizador')}
+              type="button"
+            >
+              <Tractor size={18} />
+              Pulverizador
+            </button>
+          </div>
+
+          {activeTab === 'calagem' ? (
+            <div className="panel-grid">
+              <div className="card section-card">
+                <SectionTitle
+                  icon={Sprout}
+                  title="Calculadora de Calagem"
+                  subtitle="Método: saturação por bases"
+                />
+
+                <div className="form-grid two-cols">
+                  <div className="subcard">
+                    <h3>Bases</h3>
+                    <label>
+                      Potássio (K)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={calagem.k}
+                        onChange={(e) => updateCalagem('k', e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Cálcio (Ca)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={calagem.ca}
+                        onChange={(e) => updateCalagem('ca', e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Magnésio (Mg)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={calagem.mg}
+                        onChange={(e) => updateCalagem('mg', e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      H + Al (Acidez)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={calagem.hal}
+                        onChange={(e) => updateCalagem('hal', e.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="subcard">
+                    <h3>Parâmetros</h3>
+                    <label>
+                      Fósforo (P) <span className="inline-note">informativo</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={calagem.p}
+                        onChange={(e) => updateCalagem('p', e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      V% desejada
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={calagem.vAlvo}
+                        onChange={(e) => updateCalagem('vAlvo', e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      PRNT (%)
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={calagem.prnt}
+                        onChange={(e) => updateCalagem('prnt', e.target.value)}
+                      />
+                    </label>
+
+                    <button className="primary-button" type="button" onClick={() => setShowCalagemResult(true)}>
+                      <Calculator size={18} />
+                      Calcular calagem
+                    </button>
+                  </div>
+                </div>
+
+                <div className="note-box">
+                  <Info size={16} />
+                  <p>
+                    O campo de fósforo foi mantido para ficar alinhado ao seu app original. Nesta versão,
+                    o cálculo principal usa K, Ca, Mg, H+Al, V% desejada e PRNT.
+                  </p>
+                </div>
+              </div>
+
+              <div className="card section-card result-panel">
+                <SectionTitle
+                  icon={BarChart3}
+                  title="Resultados"
+                  subtitle="Resumo técnico da correção do solo"
+                />
+
+                {showCalagemResult ? (
+                  <>
+                    <div className="metrics-grid">
+                      <ResultCard
+                        icon={Beaker}
+                        label="Soma de bases"
+                        value={formatNumber(calagemResult.sb)}
+                        hint="K + Ca + Mg"
+                      />
+                      <ResultCard
+                        icon={Gauge}
+                        label="CTC"
+                        value={formatNumber(calagemResult.ctc)}
+                        hint="SB + H + Al"
+                      />
+                      <ResultCard
+                        icon={Leaf}
+                        label="V% atual"
+                        value={`${formatNumber(calagemResult.vAtual, 1)}%`}
+                        hint="Saturação atual"
+                      />
+                      <ResultCard
+                        icon={Sprout}
+                        label="Diferença para meta"
+                        value={`${formatNumber(calagemResult.diferenca, 1)} p.p.`}
+                        hint="Quanto falta para o alvo"
+                      />
+                    </div>
+
+                    <div className={calagemResult.soloCorrigido ? 'status-banner success' : 'status-banner warning'}>
+                      {calagemResult.soloCorrigido ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+                      <div>
+                        <strong>
+                          {calagemResult.soloCorrigido
+                            ? 'Solo corrigido para a meta informada'
+                            : `Necessidade estimada: ${formatNumber(calagemResult.nc)} t/ha`}
+                        </strong>
+                        <p>
+                          {calagemResult.soloCorrigido
+                            ? 'A saturação atual já atende ou supera a V% desejada.'
+                            : 'Considere revisar a recomendação final com base na análise de solo completa e no manejo da área.'}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="empty-state">
+                    <Calculator size={20} />
+                    <p>Preencha os dados e clique em calcular.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="panel-grid">
+              <div className="card section-card">
+                <SectionTitle
+                  icon={Tractor}
+                  title="Calibração de Pulverizador"
+                  subtitle="Volume de aplicação e autonomia"
+                />
+
+                <div className="form-grid two-cols">
+                  <div className="subcard">
+                    <h3>Equipamento</h3>
+                    <label>
+                      Vazão (L/min)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        value={pulverizador.vazao}
+                        onChange={(e) => updatePulverizador('vazao', e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Espaçamento (cm)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={pulverizador.espacamento}
+                        onChange={(e) => updatePulverizador('espacamento', e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Tanque (L)
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={pulverizador.tanque}
+                        onChange={(e) => updatePulverizador('tanque', e.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="subcard">
+                    <h3>Velocidade</h3>
+                    <div className="toggle-group">
+                      <button
+                        type="button"
+                        className={pulverizador.metodo === 'Painel' ? 'toggle active' : 'toggle'}
+                        onClick={() => updatePulverizador('metodo', 'Painel')}
+                      >
+                        Painel
+                      </button>
+                      <button
+                        type="button"
+                        className={pulverizador.metodo === 'Cronômetro' ? 'toggle active' : 'toggle'}
+                        onClick={() => updatePulverizador('metodo', 'Cronômetro')}
+                      >
+                        Cronômetro
+                      </button>
+                    </div>
+
+                    {pulverizador.metodo === 'Painel' ? (
+                      <label>
+                        Velocidade (km/h)
+                        <input
+                          type="range"
+                          min="2"
+                          max="25"
+                          step="0.1"
+                          value={pulverizador.velocidadePainel}
+                          onChange={(e) => updatePulverizador('velocidadePainel', e.target.value)}
+                        />
+                        <span className="range-value">{formatNumber(toNumber(pulverizador.velocidadePainel), 1)} km/h</span>
+                      </label>
+                    ) : (
+                      <>
+                        <label>
+                          Distância (m)
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={pulverizador.dist}
+                            onChange={(e) => updatePulverizador('dist', e.target.value)}
+                          />
+                        </label>
+                        <label>
+                          Tempo (s)
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={pulverizador.tempo}
+                            onChange={(e) => updatePulverizador('tempo', e.target.value)}
+                          />
+                        </label>
+                      </>
+                    )}
+
+                    <button className="primary-button" type="button" onClick={() => setShowPulverizadorResult(true)}>
+                      <Droplets size={18} />
+                      Calcular pulverização
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card section-card result-panel">
+                <SectionTitle
+                  icon={Droplets}
+                  title="Resultados"
+                  subtitle="Aplicação por hectare e autonomia do tanque"
+                />
+
+                {showPulverizadorResult ? (
+                  <>
+                    <div className="metrics-grid">
+                      <ResultCard
+                        icon={Gauge}
+                        label="Velocidade"
+                        value={`${formatNumber(pulverizadorResult.velocidade, 1)} km/h`}
+                        hint={pulverizador.metodo}
+                      />
+                      <ResultCard
+                        icon={Droplets}
+                        label="Volume"
+                        value={`${formatNumber(pulverizadorResult.volume, 1)} L/ha`}
+                        hint="Volume aplicado"
+                      />
+                      <ResultCard
+                        icon={Tractor}
+                        label="Autonomia"
+                        value={`${formatNumber(pulverizadorResult.autonomia, 1)} ha`}
+                        hint="Cobertura por tanque"
+                      />
+                      <ResultCard
+                        icon={BarChart3}
+                        label="Faixa"
+                        value={pulverizadorResult.statusLabel}
+                        hint="Classificação automática"
+                      />
+                    </div>
+
+                    <div className={`status-banner ${pulverizadorResult.statusClass}`}>
+                      {pulverizadorResult.statusClass === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+                      <div>
+                        <strong>{pulverizadorResult.statusLabel}</strong>
+                        <p>
+                          {pulverizadorResult.status === 'baixo'
+                            ? 'O volume está abaixo de 100 L/ha. Verifique se a recomendação operacional permite essa faixa.'
+                            : pulverizadorResult.status === 'ideal'
+                              ? 'O volume ficou entre 100 e 250 L/ha, dentro da faixa considerada ideal na lógica original.'
+                              : 'O volume ultrapassou 250 L/ha. Vale conferir vazão, velocidade e espaçamento.'}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="empty-state">
+                    <Calculator size={20} />
+                    <p>Preencha os dados e clique em calcular.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+export default App;
